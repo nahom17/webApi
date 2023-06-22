@@ -1,11 +1,11 @@
 <?php
 namespace App\Database;
 
-use PDOException;
+use \PDOException;
 use \PDO;
 
 class Database {
-   private static $dbHost = 'localhost';
+   private static $dbHost = '127.0.0.1';
    private static $dbName = 'tasks';
    private static $dbUser = 'root';
    private static $dbPass = '';
@@ -46,7 +46,7 @@ class Database {
          if (!self::connect())
             return [];
 
-      return self::$dbStatement->fetch(PDO::FETCH_ASSOC) ?? [];
+      return self::$dbStatement->fetch(PDO::FETCH_ASSOC) ?: [];
    }
 
    public static function getAll(): array
@@ -55,11 +55,11 @@ class Database {
          if (!self::connect())
             return [];
 
-      return self::$dbStatement->fetchAll(PDO::FETCH_ASSOC) ?? [];
+      return self::$dbStatement->fetchAll(PDO::FETCH_ASSOC) ?: [];
    }
 
    public static function lastId(): int
    {
-      return self::$dbConnection->lastInsertId() ?? 0;
+      return self::$dbConnection->lastInsertId() ?: 0;
    }
 }

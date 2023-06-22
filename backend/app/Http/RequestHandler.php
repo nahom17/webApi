@@ -38,6 +38,21 @@ class RequestHandler
       }
    }
 
+   private function getContent(): array
+   {
+      $content = [];
+
+      if( ! empty($_POST) )
+         $content = $_POST;
+      else {
+         $data = file_get_contents('php://input');
+         if( ! empty($data) )
+            $content = $data;
+      }
+
+      return $content;
+   }
+
    private function checkRequest(): bool
    {
       if(isset($this->routes[$this->request_type])) {
@@ -45,8 +60,23 @@ class RequestHandler
             if(
                isset($this->routes[$this->request_type][$this->resource][0]) &&
                isset($this->routes[$this->request_type][$this->resource][1])
-            )
-               return true;
+            ) {
+               $callable = new \ReflectionMethod(
+                  $this->routes[$this->request_type][$this->resource][0],
+                  $this->routes[$this->request_type][$this->resource][1]
+               );
+               if($callable->getNumberOfRequiredParameters() >= 1) {
+                  foreach($callable->getParameters() as $parameter) {
+                     if($parameter->getType() == 'int' && $this->id == 0)
+                        return false;
+
+                     if($parameter->getType() == 'array' && empty($this->getContent()))
+                        return false;
+                  }
+               }
+            }
+
+            return true;
          }
       }
 
@@ -59,7 +89,7 @@ class RequestHandler
       if( $this->request_type !== RequestHandler::OPTIONS )
          if( ! $this->checkRequest() ) {
             // Response terug sturen met fout code
-            ApiResponse::sendResponse([], ApiResponse::HTTP_STATUS_BAD_REQUEST, 'Not allowed request');
+            ApiResponse::sendError(ApiResponse::HTTP_STATUS_BAD_REQUEST, 'Bad Request', 'Some parameters are missing or route not available');
             die();
          }
 
@@ -116,7 +146,7 @@ class RequestHandler
                   $return_value = $controller->$method_name();
          }
       }
-      return $return_value ?? [];
+      return $return_value ?: [];
    }
 
    private function handleGetRequest(): void
@@ -129,7 +159,9 @@ class RequestHandler
       $request_data = $_POST;
 
       ApiResponse::sendResponse(
-         $this->executeMethod($request_data)
+         $this->executeMethod($request_data),
+         ApiResponse::HTTP_STATUS_CREATED,
+         'Created successful'
       );
    }
 
